@@ -1,15 +1,16 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 import pandas as pd
 from tkinter import Tk, filedialog
 from backend.db.db_connection import get_connection
-import sys
-import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 def pick_excel_file():
     root = Tk()
     root.withdraw()
-    root.attributes("-topmost", True)  # 👈 FORCE TO FRONT
+    root.attributes("-topmost", True)
 
     file_path = filedialog.askopenfilename(
         title="Select Weekly Attendance Excel File",
@@ -33,7 +34,6 @@ def process_weekly_attendance():
 
     df = pd.read_excel(file_path)
 
-    # Expect first column as student_id, rest as dates
     date_columns = df.columns[1:]
     period_start = min(date_columns)
     period_end = max(date_columns)
@@ -41,12 +41,16 @@ def process_weekly_attendance():
     conn = get_connection()
     cur = conn.cursor()
 
-    # Batch insert data
     batch_data = []
     skipped_count = 0
 
     print("⏳ Processing attendance records...")
     for idx, (_, row) in enumerate(df.iterrows()):
+
+        # ✅ FIX ADDED HERE
+        if pd.isna(row["student_id"]):
+            continue
+
         student_id = row["student_id"]
 
         total_classes = 0
@@ -77,11 +81,9 @@ def process_weekly_attendance():
             attendance_percentage
         ))
 
-        # Show progress every 10 records
         if (idx + 1) % 10 == 0:
             print(f"  Processed {idx + 1} records...")
 
-    # Batch insert all records at once
     if batch_data:
         print(f"📤 Uploading {len(batch_data)} records to database...")
         cur.executemany("""
@@ -104,6 +106,7 @@ def process_weekly_attendance():
     print(f"✅ Attendance uploaded successfully ({len(batch_data)} records)")
     if skipped_count > 0:
         print(f"⚠️ Skipped {skipped_count} records (no classes)")
+
 
 if __name__ == "__main__":
     process_weekly_attendance()

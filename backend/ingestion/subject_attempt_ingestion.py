@@ -1,11 +1,13 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 import pandas as pd
 from tkinter import Tk, filedialog
 from backend.db.db_connection import get_connection
-import sys
-import os
+
 import logging
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 
 logging.basicConfig(
     filename="backend/logs/data_quality.log",
