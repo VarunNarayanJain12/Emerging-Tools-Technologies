@@ -1,0 +1,36 @@
+# Environment files — NEVER commit these
+.env
+backend/.env
+backend/rag/.env
+frontend/.env.local
+frontend/.env
+
+# ChromaDB local database — huge folder
+backend/rag/chroma_db/
+
+# Python cache — auto-generated
+__pycache__/
+*.pyc
+*.pyo
+backend/db/__pycache__/
+
+# Temp test files
+tmp_*.json
+*.json.tmp
+backend/test_connection_backup.py
+
+# Audit and temp docs
+project_audit_report.md
+
+# Node modules
+node_modules/
+
+# VS Code
+.vscode/
+
+# Logs
+backend/logs/
+*.log
+
+# Antigravity IDE config
+.agent/

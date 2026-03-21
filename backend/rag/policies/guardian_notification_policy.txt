@@ -1,0 +1,66 @@
+GUARDIAN AND PARENT NOTIFICATION POLICY
+Rajiv Gandhi Institute of Technology
+Office of Student Affairs
+
+1. POLICY STATEMENT
+The institution recognizes that family support is a critical factor in student success. This policy defines when, how, and by whom parents or guardians are notified about a student's academic performance, attendance, and at-risk status. All notifications are issued with the student's welfare as the primary concern.
+
+2. DEFINITION OF GUARDIAN
+For the purposes of this policy, "guardian" refers to the parent, legal guardian, or emergency contact registered by the student at the time of admission. Students are responsible for ensuring that guardian contact information (phone number and email address) in the student portal is current and accurate.
+
+3. TRIGGERS FOR GUARDIAN NOTIFICATION
+
+Tier 1 — Warning Notification (Automated)
+The following conditions trigger an automated SMS and email notification to the registered guardian:
+  a) Attendance falls below 80% in any subject (first warning)
+  b) Score below 50% in any Unit Test
+  c) Student is flagged YELLOW in the EWS for the first time in an academic year
+
+Tier 2 — Formal Written Communication (HOD/Mentor)
+The following conditions trigger a formal letter or email communication signed by the Head of Department or Class Mentor:
+  a) Attendance falls below 75% in any subject (mandatory threshold breach)
+  b) Student is flagged RED in the EWS
+  c) Student fails to attend two or more consecutive remedial sessions without valid reason
+  d) Student's risk score exceeds 70 on a scale of 0–100 in the EWS
+  e) Student receives below 40% in two consecutive Unit Tests in the same subject
+
+Tier 3 — In-Person Meeting Request
+The following conditions require the institution to formally invite the guardian for an in-person meeting with the mentor or counsellor:
+  a) Student remains RED-flagged in two consecutive EWS assessment cycles
+  b) Student is recommended for academic probation or detention from exams
+  c) Student has accumulated 3 unresolved interventions
+  d) Student expresses personal distress, mental health concerns, or financial difficulties
+
+4. CONTENT OF NOTIFICATIONS
+
+Tier 1 SMS Template:
+"Dear Parent/Guardian of [Student Name] (Roll No: [X]), your ward's attendance in [Subject] has fallen to [X]%. Please ensure regular attendance. For details, contact the Class Mentor. — Rajiv Gandhi Institute of Technology"
+
+Tier 1 Email: Includes subject name, current attendance percentage, minimum requirement, and contact details of the class mentor.
+
+Tier 2 Formal Letter: Includes a detailed summary of the student's academic standing, specific subjects/assessments of concern, the EWS risk category, and the recommended intervention plan. The letter is signed by the Head of Department.
+
+Tier 3 Meeting Request: Sent via email and registered post (if required). Includes a proposed schedule for the meeting and details of the concerns to be discussed.
+
+5. STUDENT PRIVACY AND CONSENT
+All notifications are made in the best interest of the student. Students are informed in advance that their academic performance data may be shared with their registered guardian as per this policy. Students who are legally adults (18 years and above) may request that certain categories of notifications (Tier 1 only) be withheld, subject to a formal application reviewed by the Dean of Student Affairs. Tier 2 and Tier 3 notifications cannot be withheld.
+
+6. RECORD KEEPING
+All guardian notifications are logged in the institution's Early Warning System with the following details:
+  - Date and time of notification
+  - Type and channel (SMS/email/letter/in-person)
+  - Name of guardian notified
+  - Summary of content communicated
+  - Follow-up action required
+
+7. RESPONSE AND FOLLOW-UP
+If a guardian responds to a notification (by phone, email, or in person), the response is recorded by the class mentor within 24 hours. If a guardian does not respond to a Tier 2 or Tier 3 notification within 7 working days, a second attempt is made. Persistent non-response is escalated to the Dean of Student Affairs.
+
+8. LANGUAGE OF COMMUNICATION
+Notifications are issued in English. Upon guardian request, notifications may be provided in the regional language (Kannada/Hindi) where feasible, facilitated by the Student Affairs office.
+
+9. EMERGENCY CONTACT PROTOCOL
+In cases of student medical emergency, sudden absence exceeding 3 consecutive days without information, or serious disciplinary matter, the guardian is contacted immediately by phone by the class mentor, Head of Department, or Student Affairs Officer — regardless of the notification tier framework.
+
+10. REVIEW
+This policy is reviewed annually by the Student Affairs Committee. Student and guardian feedback is considered during each review cycle. The institution reserves the right to update this policy in line with applicable UGC/AICTE guidelines and institutional regulations.
