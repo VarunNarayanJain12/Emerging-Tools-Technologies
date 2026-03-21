@@ -3,8 +3,16 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import pandas as pd
+import logging
 from tkinter import Tk, filedialog
 from backend.db.db_connection import get_connection
+
+
+logging.basicConfig(
+    filename="backend/logs/data_quality.log",
+    level=logging.WARNING,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def pick_excel_file():

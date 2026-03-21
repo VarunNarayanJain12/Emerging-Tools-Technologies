@@ -17,7 +17,6 @@ backend/db/__pycache__/
 # Temp test files
 tmp_*.json
 *.json.tmp
-backend/test_connection_backup.py
 
 # Audit and temp docs
 project_audit_report.md
@@ -28,8 +27,8 @@ node_modules/
 # VS Code
 .vscode/
 
-# Logs
-backend/logs/
+# Logs — keep folder, ignore log files
+backend/logs/*.log
 *.log
 
 # Antigravity IDE config
