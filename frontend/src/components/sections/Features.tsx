@@ -13,6 +13,8 @@ import {
   AlertCircle,
   Filter,
 } from "lucide-react"
+import { ContainerScroll } from "@/components/ui/container-scroll-animation"
+import { DashboardPreview } from "@/components/sections/DashboardPreview"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -22,17 +24,21 @@ export function Features() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.from(".feature-card", {
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top center+=100",
-        },
-        y: 60,
-        opacity: 0,
-        duration: 0.8,
-        stagger: 0.15,
-        ease: "power3.out",
-      })
+      gsap.fromTo(".feature-card",
+        { y: 60, opacity: 0 },
+        {
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 80%",
+            once: true,
+          },
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.12,
+          ease: "power3.out",
+        }
+      )
     }, sectionRef)
 
     return () => ctx.revert()
@@ -172,6 +178,7 @@ export function Features() {
             <div
               key={index}
               className="feature-card group p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-orange-100 dark:border-orange-900/30 hover:scale-105 hover:-translate-y-1"
+              style={{ opacity: 1 }}
             >
               <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-4 text-white group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 {feature.icon}
@@ -196,6 +203,29 @@ export function Features() {
             </span>
           </div>
         </div>
+
+        {/* Dashboard scroll preview */}
+        <ContainerScroll
+          titleComponent={
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-orange-500 uppercase tracking-widest">Live Preview</p>
+              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white">
+                See the{" "}
+                <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                  {activeTab === "teacher" ? "Teacher" : "Student"}
+                </span>{" "}
+                Dashboard
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400 text-base max-w-xl mx-auto">
+                {activeTab === "teacher"
+                  ? "Monitor all students, track risk levels, and take action — all from one place."
+                  : "Students get a clear view of their risk score, attendance, and academic performance."}
+              </p>
+            </div>
+          }
+        >
+          <DashboardPreview tab={activeTab} />
+        </ContainerScroll>
       </div>
     </section>
   )

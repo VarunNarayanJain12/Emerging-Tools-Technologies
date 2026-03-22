@@ -76,9 +76,9 @@ export function Header() {
           {/* Theme Toggle & CTA */}
           <div className="flex items-center space-x-4">
             <ThemeToggle />
-            <button className="hidden md:block px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300">
+            <a href="/login" className="hidden md:block px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300">
               Get Started
-            </button>
+            </a>
           </div>
         </div>
       </nav>
