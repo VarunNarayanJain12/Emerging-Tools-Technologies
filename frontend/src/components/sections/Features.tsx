@@ -24,17 +24,21 @@ export function Features() {
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.from(".feature-card", {
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top center+=100",
-        },
-        y: 60,
-        opacity: 0,
-        duration: 0.8,
-        stagger: 0.15,
-        ease: "power3.out",
-      })
+      gsap.fromTo(".feature-card",
+        { y: 60, opacity: 0 },
+        {
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 80%",
+            once: true,
+          },
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.12,
+          ease: "power3.out",
+        }
+      )
     }, sectionRef)
 
     return () => ctx.revert()
@@ -174,6 +178,7 @@ export function Features() {
             <div
               key={index}
               className="feature-card group p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-orange-100 dark:border-orange-900/30 hover:scale-105 hover:-translate-y-1"
+              style={{ opacity: 1 }}
             >
               <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-4 text-white group-hover:scale-110 transition-transform duration-300 shadow-lg">
                 {feature.icon}
