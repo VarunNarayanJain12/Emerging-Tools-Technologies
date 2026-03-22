@@ -278,7 +278,7 @@ This project introduces a **transparent, explainable, and scalable** early warni
 - **tkinter** - File selection GUI
 
 ### Machine Learning & AI
-- **Rule-Based ML** - Transparent threshold logic for risk classification
+- **Rule-Based Risk Classifier** — 5-factor weighted scoring system
 - **Large Language Models (LLMs)** - Natural language explanations
 - **Vector Database (ChromaDB)** - Semantic search for institutional policies
 - **sentence-transformers (all-MiniLM-L6-v2)** - Text embeddings for indexing
@@ -360,6 +360,15 @@ python -m uvicorn backend.rag.main:app --host 0.0.0.0 --port 8000
 # API docs available at: http://localhost:8000/docs
 ```
 
+### Step 6: Run Risk Evaluation
+```bash
+# Seed default rules and evaluate all students
+python -m backend.risk_engine.risk_scorer
+
+# Or trigger via API once server is running
+POST http://localhost:8000/run-risk-evaluation
+```
+
 ---
 
 ## 🚀 Usage
@@ -384,18 +393,32 @@ python subject_attempt_ingestion.py    # Upload subject attempt data
 **Assessments**: `student_id` | `assessment_name` | `assessment_type` | `score_obtained` | `max_score` | `assessment_date` | `weightage`  
 **Attempts**: `student_id` | `attempts_used` | `max_attempts_allowed` | `last_attempt_date`
 
-### 2️⃣ Risk Evaluation
+### 2️⃣ Risk Evaluation ✅ LIVE
 
-The system automatically evaluates risk based on:
+The risk scoring engine automatically evaluates 
+all active students using rule-based thresholds 
+stored in the database.
 
-- **Attendance Risk**: < 75% attendance
-- **Performance Risk**: Declining assessment scores
-- **Attempt Risk**: Exhausted or near-exhausted attempts
+**Trigger via API:**
+POST http://localhost:8000/run-risk-evaluation
+
+**Or run standalone:**
+python -m backend.risk_engine.risk_scorer
+
+**5 Scoring Rules (loaded from risk_evaluation_rules table):**
+- 📊 Attendance < 75% → +25 points (< 60% → +40 points)
+- 📝 Avg score < 60% → +25 points
+- 📉 Declining trend (recent scores 15%+ lower) → +15 points
+- 🔄 Attempts > 80% exhausted → +30 points
+- 💰 Fee overdue > 30 days → +15 points
 
 **Risk Categories:**
-- 🟢 **Green (Safe)**: All indicators normal
-- 🟡 **Yellow (Moderate Risk)**: 1-2 risk factors
-- 🔴 **Red (High Risk)**: 3+ risk factors
+- 🟢 GREEN (0-40): Safe, monitor normally
+- 🟡 YELLOW (41-70): Moderate risk, mentor should check in
+- 🔴 RED (71-100): High risk, immediate intervention needed
+
+Results stored in risk_profiles table with full 
+reason_json for LLM explainability.
 
 ### 3️⃣ Dashboard Navigation
 
@@ -442,6 +465,9 @@ Emerging-Tools-Technologies/
 ├── 📁 backend/
 │   ├── 📁 db/
 │   │   └── db_connection.py          # PostgreSQL connection handler
+│   ├── 📁 risk_engine/
+│   │   ├── __init__.py          # Python package init
+│   │   └── risk_scorer.py       # Rule-based risk scoring engine
 │   ├── 📁 ingestion/
 │   │   ├── assessment_ingestion.py   # Upload assessment scores
 │   │   ├── attendance_weekly_ingestion.py  # Upload attendance data
@@ -828,8 +854,8 @@ Repository: [Emerging-Tools-Technologies](https://github.com/VarunNarayanJain/Em
 ![GitHub Issues](https://img.shields.io/github/issues/VarunNarayanJain/Emerging-Tools-Technologies)
 ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/VarunNarayanJain/Emerging-Tools-Technologies)
 
-**Current Version**: 1.1.0  
-**Last Updated**: March 22, 2026  
+**Current Version**: 1.2.0  
+**Last Updated**: March 23, 2026  
 **Status**: Live Service Deployment 🚀
 
 ---
