@@ -13,6 +13,8 @@ import {
   AlertCircle,
   Filter,
 } from "lucide-react"
+import { ContainerScroll } from "@/components/ui/container-scroll-animation"
+import { DashboardPreview } from "@/components/sections/DashboardPreview"
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -196,6 +198,29 @@ export function Features() {
             </span>
           </div>
         </div>
+
+        {/* Dashboard scroll preview */}
+        <ContainerScroll
+          titleComponent={
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-orange-500 uppercase tracking-widest">Live Preview</p>
+              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white">
+                See the{" "}
+                <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                  {activeTab === "teacher" ? "Teacher" : "Student"}
+                </span>{" "}
+                Dashboard
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400 text-base max-w-xl mx-auto">
+                {activeTab === "teacher"
+                  ? "Monitor all students, track risk levels, and take action — all from one place."
+                  : "Students get a clear view of their risk score, attendance, and academic performance."}
+              </p>
+            </div>
+          }
+        >
+          <DashboardPreview tab={activeTab} />
+        </ContainerScroll>
       </div>
     </section>
   )
