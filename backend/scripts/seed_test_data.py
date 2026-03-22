@@ -31,6 +31,14 @@ VALUES
   ('v1.0', 'Default Rules v1.0', 75, 60.0, 80, 30, TRUE)
 ON CONFLICT (rule_version) DO NOTHING;
 
+-- 1.5 Cleanup test student data
+DELETE FROM attendance_records WHERE student_id = 'STU20231001';
+DELETE FROM assessment_records WHERE student_id = 'STU20231001';
+DELETE FROM subject_attempts WHERE student_id = 'STU20231001';
+DELETE FROM fee_records WHERE student_id = 'STU20231001';
+DELETE FROM risk_profiles WHERE student_id = 'STU20231001';
+DELETE FROM students WHERE student_id = 'STU20231001';
+
 -- 2. Subject
 INSERT INTO subjects (subject_code, subject_name, department)
 VALUES ('CS201', 'Data Structures and Algorithms', 'CS')
@@ -87,7 +95,7 @@ INSERT INTO assessment_records
 VALUES
   ('STU20231001', 'CS201', 'Quiz 1',  'quiz',    16, 20, '2026-01-15', 10),
   ('STU20231001', 'CS201', 'Quiz 2',  'quiz',    14, 20, '2026-02-01', 10),
-  ('STU20231001', 'CS201', 'Midterm', 'midterm', 28, 50, '2026-02-20', 30),
+  ('STU20231001', 'CS201', 'Midterm', 'midterm', 15, 50, '2026-02-20', 30),
   ('STU20231001', 'CS201', 'Quiz 3',  'quiz',    11, 20, '2026-03-10', 10)
 ON CONFLICT (student_id, subject_code, assessment_name, assessment_date) DO NOTHING;
 
@@ -98,6 +106,14 @@ INSERT INTO subject_attempts
 VALUES
   ('STU20231001', 'CS201', 2, 4, '2026-03-10', 'ongoing')
 ON CONFLICT (student_id, subject_code) DO NOTHING;
+
+-- 8. Fee records (overdue > 30 days)
+INSERT INTO fee_records
+  (student_id, fee_type, amount_due, amount_paid,
+   due_date, payment_status)
+VALUES
+  ('STU20231001', 'Tuition', 5000, 0, '2026-02-15', 'overdue')
+ON CONFLICT DO NOTHING;
 """
 
 print("Executing seed SQL...")
@@ -111,6 +127,7 @@ CHECKS = [
     ("attendance_records","SELECT COUNT(*) FROM attendance_records WHERE student_id='STU20231001'"),
     ("assessment_records","SELECT COUNT(*) FROM assessment_records WHERE student_id='STU20231001'"),
     ("subject_attempts",  "SELECT COUNT(*) FROM subject_attempts WHERE student_id='STU20231001'"),
+    ("fee_records",       "SELECT COUNT(*) FROM fee_records WHERE student_id='STU20231001'"),
 ]
 
 print("\n--- Verification ---")

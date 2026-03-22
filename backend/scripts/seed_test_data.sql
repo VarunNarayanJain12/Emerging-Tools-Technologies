@@ -12,6 +12,14 @@ VALUES
   ('v1.0', 'Default Rules v1.0', 75, 60.0, 80, 30, TRUE)
 ON CONFLICT (rule_version) DO NOTHING;
 
+-- 1.5 Cleanup test student data to ensure fresh seed
+DELETE FROM attendance_records WHERE student_id = 'STU20231001';
+DELETE FROM assessment_records WHERE student_id = 'STU20231001';
+DELETE FROM subject_attempts WHERE student_id = 'STU20231001';
+DELETE FROM fee_records WHERE student_id = 'STU20231001';
+DELETE FROM risk_profiles WHERE student_id = 'STU20231001';
+DELETE FROM students WHERE student_id = 'STU20231001';
+
 -- 2. Test student
 INSERT INTO students
   (student_id, roll_number, full_name, class, section,
@@ -75,7 +83,7 @@ INSERT INTO assessment_records
 VALUES
   ('STU20231001', 'CS201', 'Quiz 1',  'quiz',    16, 20, '2026-01-15', 10),
   ('STU20231001', 'CS201', 'Quiz 2',  'quiz',    14, 20, '2026-02-01', 10),
-  ('STU20231001', 'CS201', 'Midterm', 'midterm', 28, 50, '2026-02-20', 30),
+  ('STU20231001', 'CS201', 'Midterm', 'midterm', 15, 50, '2026-02-20', 30),
   ('STU20231001', 'CS201', 'Quiz 3',  'quiz',    11, 20, '2026-03-10', 10)
 ON CONFLICT (student_id, subject_code, assessment_name, assessment_date) DO NOTHING;
 
@@ -87,6 +95,14 @@ VALUES
   ('STU20231001', 'CS201', 2, 4, '2026-03-10', 'ongoing')
 ON CONFLICT (student_id, subject_code) DO NOTHING;
 
+-- 8. Fee records (overdue > 30 days)
+INSERT INTO fee_records
+  (student_id, fee_type, amount_due, amount_paid,
+   due_date, payment_status)
+VALUES
+  ('STU20231001', 'Tuition', 5000, 0, '2026-02-15', 'overdue')
+ON CONFLICT DO NOTHING;
+
 -- Verify
 SELECT 'students'           AS tbl, COUNT(*) FROM students          WHERE student_id = 'STU20231001'
 UNION ALL
@@ -96,4 +112,6 @@ SELECT 'attendance_records',         COUNT(*) FROM attendance_records WHERE stud
 UNION ALL
 SELECT 'assessment_records',         COUNT(*) FROM assessment_records WHERE student_id = 'STU20231001'
 UNION ALL
-SELECT 'subject_attempts',           COUNT(*) FROM subject_attempts  WHERE student_id = 'STU20231001';
+SELECT 'subject_attempts',           COUNT(*) FROM subject_attempts  WHERE student_id = 'STU20231001'
+UNION ALL
+SELECT 'fee_records',                COUNT(*) FROM fee_records       WHERE student_id = 'STU20231001';

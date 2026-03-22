@@ -35,6 +35,7 @@ from backend.rag.rag_engine import (                          # noqa: E402
     get_student_context,
 )
 from backend.rag.vector_store import initialize_vector_store  # noqa: E402
+from backend.risk_engine.risk_scorer import run_risk_evaluation  # noqa: E402
 
 # ─────────────────────────────────────────────
 # Logging
@@ -124,6 +125,17 @@ class HealthResponse(BaseModel):
     db_status: str
     policies_count: int
     model: str
+
+
+class RiskEvaluationSummary(BaseModel):
+    """Response for POST /run-risk-evaluation."""
+
+    total_students: int
+    green: int
+    yellow: int
+    red: int
+    evaluation_run_id: str
+    rule_version: str
 
 
 # ─────────────────────────────────────────────
@@ -395,6 +407,48 @@ async def get_student_summary(student_id: str) -> StudentSummary:
         flags_triggered=flags_triggered,
         avg_attendance=avg_attendance,
     )
+
+
+# ─────────────────────────────────────────────
+# ENDPOINT 5 — Trigger risk evaluation batch
+# ─────────────────────────────────────────────
+
+
+@app.post(
+    "/run-risk-evaluation",
+    response_model=RiskEvaluationSummary,
+    tags=["Risk Engine"],
+)
+async def trigger_risk_evaluation() -> RiskEvaluationSummary:
+    """Trigger a full system-wide risk evaluation for all active students.
+    
+    This endpoint calls the underlying risk engine to:
+    1. Load active thresholds.
+    2. Aggregate data for every active student.
+    3. Apply multi-factor scoring rules.
+    4. Persist result snapshots to PostgreSQL.
+    
+    Returns:
+        RiskEvaluationSummary with counts of GREEN, YELLOW, and RED students.
+        
+    Raises:
+        500: If the evaluation engine fails.
+    """
+    logger.info("POST /run-risk-evaluation — batch process triggered.")
+    try:
+        summary = run_risk_evaluation()
+        logger.info(
+            "/run-risk-evaluation — complete | run_id=%s | total=%d",
+            summary["evaluation_run_id"],
+            summary["total_students"],
+        )
+        return RiskEvaluationSummary(**summary)
+    except Exception as e:
+        logger.error("/run-risk-evaluation — batch failed: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail="Risk evaluation engine failed to complete batch process.",
+        )
 
 
 # ─────────────────────────────────────────────
