@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthFormCard } from '@/components/auth/AuthFormCard'
 import { FormField } from '@/components/auth/FormField'
@@ -17,7 +17,7 @@ export default function TeacherLogin() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setUser({ ...MOCK_TEACHER, email: email || MOCK_TEACHER.email })
     navigate('/teacher/dashboard')
@@ -32,9 +32,9 @@ export default function TeacherLogin() {
       footer={
         <>
           Don't have an account?{' '}
-          <Link to="/teacher/register" className="text-primary underline underline-offset-2">Register</Link>
+          <Link to="/teacher/register" className="text-orange-500 hover:text-orange-600 font-medium">Register</Link>
           {' · '}
-          <Link to="/login" className="text-primary underline underline-offset-2">Back</Link>
+          <Link to="/login" className="text-orange-500 hover:text-orange-600 font-medium">Back</Link>
         </>
       }
     >

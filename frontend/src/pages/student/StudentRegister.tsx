@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { AuthFormCard } from '@/components/auth/AuthFormCard'
 import { FormField } from '@/components/auth/FormField'
@@ -14,7 +14,7 @@ export default function StudentRegister() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
-  function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setUser({ id: 'STU-NEW-001', email: form.email, name: form.name, role: 'student' })
     navigate('/student/dashboard')
@@ -29,9 +29,9 @@ export default function StudentRegister() {
       footer={
         <>
           Already have an account?{' '}
-          <Link to="/student/login" className="text-primary underline underline-offset-2">Sign in</Link>
+          <Link to="/student/login" className="text-orange-500 hover:text-orange-600 font-medium">Sign in</Link>
           {' · '}
-          <Link to="/login" className="text-primary underline underline-offset-2">Back</Link>
+          <Link to="/login" className="text-orange-500 hover:text-orange-600 font-medium">Back</Link>
         </>
       }
     >
