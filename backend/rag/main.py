@@ -138,6 +138,23 @@ class RiskEvaluationSummary(BaseModel):
     rule_version: str
 
 
+class StudentListItem(BaseModel):
+    """Item for student listing."""
+
+    student_id: str
+    full_name: str
+    roll_number: str
+    department: str
+    status: str
+
+
+class StudentsListResponse(BaseModel):
+    """Response for GET /students."""
+
+    students: list[StudentListItem]
+    total: int
+
+
 # ─────────────────────────────────────────────
 # Startup event
 # ─────────────────────────────────────────────
@@ -221,6 +238,61 @@ async def health_check() -> HealthResponse:
         policies_count=policies_count,
         model="llama-3.3-70b-versatile",
     )
+
+
+# ─────────────────────────────────────────────
+# ENDPOINT 1.5 — Student Listing
+# ─────────────────────────────────────────────
+
+
+@app.get("/students", response_model=StudentsListResponse, tags=["Students"])
+async def list_students() -> StudentsListResponse:
+    """Return a list of all active students.
+
+    Fetches student metadata (ID, name, roll number, department) for all
+    students with an 'active' status. Used by teachers to populate the
+    dashboard student list dynamically.
+
+    Returns:
+        StudentsListResponse containing the list of students and total count.
+
+    Raises:
+        500: If a database error occurs.
+    """
+    logger.info("GET /students")
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT student_id, full_name, roll_number, department, status "
+            "FROM students WHERE status = 'active'"
+        )
+        rows = cur.fetchall()
+        
+        students = [
+            StudentListItem(
+                student_id=row[0],
+                full_name=row[1],
+                roll_number=row[2],
+                department=row[3],
+                status=row[4]
+            )
+            for row in rows
+        ]
+
+        logger.info("GET /students — returned %d student(s).", len(students))
+        return StudentsListResponse(students=students, total=len(students))
+
+    except Exception as e:
+        logger.error("GET /students — DB error: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to fetch students list. Please try again later.",
+        )
+    finally:
+        if conn:
+            conn.close()
 
 
 # ─────────────────────────────────────────────

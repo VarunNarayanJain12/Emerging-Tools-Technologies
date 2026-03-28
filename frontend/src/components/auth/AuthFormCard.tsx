@@ -7,8 +7,8 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 interface AuthFormCardProps {
   title: string
   description?: string
-  onSubmit: (e: FormEvent) => void
-  submitLabel: string
+  onSubmit?: (e: FormEvent) => void
+  submitLabel?: string
   footer?: ReactNode
   children: ReactNode
 }
@@ -43,6 +43,26 @@ export function AuthFormCard({ title, description, onSubmit, submitLabel, footer
     gsap.to(btnRef.current, { scale: 1, boxShadow: '0 0 0px rgba(249,115,22,0)', duration: 0.2 })
   }
 
+  const renderFormContent = () => (
+    <>
+      <div ref={fieldsRef} className="space-y-4">
+        {children}
+      </div>
+
+      {onSubmit && submitLabel && (
+        <button
+          ref={btnRef}
+          type="submit"
+          onMouseEnter={handleBtnEnter}
+          onMouseLeave={handleBtnLeave}
+          className="mt-6 w-full py-3 px-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-orange-200 dark:hover:shadow-orange-900/40 transition-shadow duration-300"
+        >
+          {submitLabel}
+        </button>
+      )}
+    </>
+  )
+
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 overflow-hidden">
       <ParticleBackground />
@@ -64,21 +84,13 @@ export function AuthFormCard({ title, description, onSubmit, submitLabel, footer
             {description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description}</p>}
           </div>
 
-          <form onSubmit={onSubmit}>
-            <div ref={fieldsRef} className="space-y-4">
-              {children}
-            </div>
-
-            <button
-              ref={btnRef}
-              type="submit"
-              onMouseEnter={handleBtnEnter}
-              onMouseLeave={handleBtnLeave}
-              className="mt-6 w-full py-3 px-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-orange-200 dark:hover:shadow-orange-900/40 transition-shadow duration-300"
-            >
-              {submitLabel}
-            </button>
-          </form>
+          {onSubmit ? (
+            <form onSubmit={onSubmit}>
+              {renderFormContent()}
+            </form>
+          ) : (
+            renderFormContent()
+          )}
 
           {footer && (
             <div className="mt-5 text-center text-sm text-gray-500 dark:text-gray-400">

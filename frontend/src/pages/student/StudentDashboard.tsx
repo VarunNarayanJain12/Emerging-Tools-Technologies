@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react'
-import { useAuth } from '@/context/useAuth'
+import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@/context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { gsap } from 'gsap'
-import { BellRing, LogOut } from 'lucide-react'
+import { BellRing, LogOut, Loader2, AlertCircle } from 'lucide-react'
 import { EduAlertLogo } from '@/components/auth/EduAlertLogo'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { StudentProfileCard } from '@/components/student/StudentProfileCard'
@@ -12,13 +12,36 @@ import { AttendanceSummaryCard } from '@/components/student/AttendanceSummaryCar
 import { AssessmentScoresCard } from '@/components/student/AssessmentScoresCard'
 import { NotificationItem } from '@/components/student/NotificationItem'
 import { SessionCard } from '@/components/student/SessionCard'
+import { studentService } from '@/services/studentService'
+import { RiskProfileContext } from '@/types'
 
 export default function StudentDashboard() {
-  const { user, setUser } = useAuth()
+  const { user, userProfile, logout } = useAuth()
   const navigate = useNavigate()
   const headerRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
   const badgeRef = useRef<HTMLDivElement>(null)
+
+  const [data, setData] = useState<RiskProfileContext | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadData() {
+      if (!user?.id) return;
+      try {
+        setLoading(true)
+        setError(null)
+        const profile = await studentService.getStudentRiskProfile(user.id)
+        setData(profile)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [user?.id])
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -28,7 +51,7 @@ export default function StudentDashboard() {
         { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }
       )
       // Cards stagger slide up
-      if (gridRef.current) {
+      if (gridRef.current && !loading && data) {
         gsap.fromTo(Array.from(gridRef.current.children),
           { opacity: 0, y: 50 },
           { opacity: 1, y: 0, duration: 0.55, stagger: 0.1, ease: 'power3.out', delay: 0.3 }
@@ -40,11 +63,32 @@ export default function StudentDashboard() {
       })
     })
     return () => ctx.revert()
-  }, [])
+  }, [loading, data])
 
-  function logout() {
-    setUser(null)
-    navigate('/')
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-10 w-10 text-orange-500 animate-spin" />
+          <p className="text-gray-500 dark:text-gray-400 font-medium">Loading Dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-red-100 dark:border-red-900/30 shadow-xl max-w-md text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Failed to Load Dashboard</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">{error}</p>
+          <button onClick={() => window.location.reload()} className="px-6 py-2 bg-orange-500 text-white rounded-full font-semibold hover:bg-orange-600 transition-colors">
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -55,7 +99,7 @@ export default function StudentDashboard() {
           <EduAlertLogo size="sm" />
           <div className="flex items-center gap-4">
             <div ref={badgeRef}>
-              <RiskStatusBadge risk_category="YELLOW" />
+              <RiskStatusBadge risk_category={data?.risk_profile?.risk_category || 'GREEN'} />
             </div>
             <ThemeToggle />
             <button
@@ -75,16 +119,45 @@ export default function StudentDashboard() {
             <BellRing className="h-6 w-6 text-orange-500" />
             Student Dashboard
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Welcome back, {user?.name} · {user?.id}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Welcome back, {data?.student?.full_name} · {data?.student?.student_id}</p>
         </div>
 
         {/* Cards grid */}
         <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <StudentProfileCard />
-          <RiskScoreDisplay />
-          <AttendanceSummaryCard />
-          <AssessmentScoresCard />
+          <StudentProfileCard student={data?.student} />
+          
+          <RiskScoreDisplay 
+            score={data?.risk_profile?.risk_score ?? 0}
+            flags={{
+              attendance_risk: !!data?.risk_profile?.attendance_risk,
+              performance_risk: !!data?.risk_profile?.performance_risk,
+              attempts_risk: !!data?.risk_profile?.attempt_risk,
+              fee_risk: !!data?.risk_profile?.fee_risk
+            }}
+            updatedAt={data?.risk_profile?.updated_at}
+          />
+
+          <AttendanceSummaryCard data={{
+            attendance_percentage: data?.attendance?.[0]?.attendance_percentage || 0,
+            total_classes: data?.attendance?.[0]?.classes_conducted || 0,
+            attended_classes: data?.attendance?.[0]?.classes_attended || 0,
+            week_label: data?.attendance?.[0] ? `Last updated ${new Date(data.attendance[0].recorded_at).toLocaleDateString()}` : 'No attendance recorded'
+          }} />
+
+          <AssessmentScoresCard data={{
+            overall_average: data?.assessments?.length 
+              ? data.assessments.reduce((acc, curr) => acc + (curr.score_obtained / curr.max_score * 100), 0) / data.assessments.length
+              : 0,
+            recent: data?.assessments?.slice(0, 3).map(a => ({
+              assessment_name: a.assessment_type,
+              score: a.score_obtained,
+              max_score: a.max_score,
+              date: a.recorded_at
+            })) || []
+          }} />
+
           <SessionCard />
+          
           <div className="space-y-3">
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Notifications</p>
             <NotificationItem />

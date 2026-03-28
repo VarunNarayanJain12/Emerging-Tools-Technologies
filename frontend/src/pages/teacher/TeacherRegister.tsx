@@ -1,50 +1,29 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { AuthFormCard } from '@/components/auth/AuthFormCard'
-import { FormField } from '@/components/auth/FormField'
-import { useAuth } from '@/context/useAuth'
+import { Link } from 'react-router-dom';
+import { AuthFormCard } from '@/components/auth/AuthFormCard';
+import { ShieldAlert } from 'lucide-react';
 
 export default function TeacherRegister() {
-  const { setUser } = useAuth()
-  const navigate = useNavigate()
-  const [form, setForm] = useState({
-    name: '', email: '', password: '', confirm: '', department: '',
-  })
-
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm(f => ({ ...f, [k]: e.target.value }))
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setUser({ id: 'TCHR-NEW-001', email: form.email, name: form.name, role: 'teacher' })
-    navigate('/teacher/dashboard')
-  }
-
   return (
     <AuthFormCard
-      title="Teacher Registration"
-      description="Create your teacher account"
-      onSubmit={handleSubmit}
-      submitLabel="Create Account"
+      title="Access Restricted"
+      description="Institutional registration is closed"
       footer={
-        <>
-          Already have an account?{' '}
-          <Link to="/teacher/login" className="text-orange-500 hover:text-orange-600 font-medium">Sign in</Link>
-          {' · '}
-          <Link to="/login" className="text-orange-500 hover:text-orange-600 font-medium">Back</Link>
-        </>
+        <Link to="/teacher/login" className="text-orange-500 hover:text-orange-600 font-bold flex items-center justify-center gap-2">
+          Back to Login
+        </Link>
       }
     >
-      <FormField id="name" label="Full Name" placeholder="Dr. Priya Sharma"
-        value={form.name} onChange={set('name')} required />
-      <FormField id="email" label="Email" type="email" placeholder="you@university.edu"
-        value={form.email} onChange={set('email')} required />
-      <FormField id="password" label="Password" type="password" placeholder="••••••••"
-        value={form.password} onChange={set('password')} required />
-      <FormField id="confirm" label="Confirm Password" type="password" placeholder="••••••••"
-        value={form.confirm} onChange={set('confirm')} required />
-      <FormField id="department" label="Department" placeholder="Computer Science"
-        value={form.department} onChange={set('department')} required />
+      <div className="py-8 text-center space-y-4">
+        <div className="inline-flex p-4 bg-orange-100 dark:bg-orange-900/30 rounded-full text-orange-600 dark:text-orange-400">
+          <ShieldAlert className="h-10 w-10" />
+        </div>
+        <div className="space-y-2">
+          <p className="text-gray-900 dark:text-white font-bold text-lg">Invitation Only</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+            Registration is by invitation only. Please contact your institution administrator to obtain credentials.
+          </p>
+        </div>
+      </div>
     </AuthFormCard>
-  )
+  );
 }

@@ -40,13 +40,13 @@ function App() {
         <Route path="/student/login" element={<StudentLogin />} />
         <Route path="/student/register" element={<StudentRegister />} />
         <Route path="/student/dashboard" element={
-          <ProtectedRoute role="student"><StudentDashboard /></ProtectedRoute>
+          <ProtectedRoute allowedRoles={['student', 'mentor', 'admin', 'principal', 'counsellor', 'guardian']}><StudentDashboard /></ProtectedRoute>
         } />
 
         <Route path="/teacher/login" element={<TeacherLogin />} />
         <Route path="/teacher/register" element={<TeacherRegister />} />
         <Route path="/teacher/dashboard" element={
-          <ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>
+          <ProtectedRoute allowedRoles={['mentor', 'admin', 'principal']}><TeacherDashboard /></ProtectedRoute>
         } />
 
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,33 +1,20 @@
+import { Student } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-interface StudentProfile {
-  student_id: string
-  name: string
-  email: string
-  enrollment_year: number
-  program: string
-}
+export function StudentProfileCard({ student }: { student?: Student }) {
+  if (!student) return null;
 
-const mock: StudentProfile = {
-  student_id: 'STU-2021-0042',
-  name: 'Arjun Mehta',
-  email: 'arjun.mehta@university.edu',
-  enrollment_year: 2021,
-  program: 'B.Tech Computer Science',
-}
-
-export function StudentProfileCard() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
         <CardTitle>Student Profile</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
-        <Row label="ID" value={mock.student_id} />
-        <Row label="Name" value={mock.name} />
-        <Row label="Email" value={mock.email} />
-        <Row label="Enrolled" value={String(mock.enrollment_year)} />
-        <Row label="Program" value={mock.program} />
+        <Row label="ID" value={student.student_id} />
+        <Row label="Name" value={student.full_name} />
+        <Row label="Email" value={student.guardian_email || 'N/A'} />
+        <Row label="Enrolled" value={String(student.enrollment_year)} />
+        <Row label="Department" value={student.department} />
       </CardContent>
     </Card>
   )
