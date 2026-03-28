@@ -435,6 +435,7 @@ The RAG-powered explanation service is running on FastAPI at `http://localhost:8
 **Available Endpoints:**
 
 - `GET  /health`                — System health check
+- `GET  /students`              — Returns list of all active students
 - `GET  /students/{id}/summary` — Quick student overview  
 - `GET  /risk-profile/{id}`     — Full student risk data
 - `POST /explain-risk`          — AI-powered explanation (RAG)
@@ -704,6 +705,25 @@ graph TD
 
 ---
 
+## 🟢 Project Progress (v1.3.0)
+
+### What is fully working
+- ✅ Frontend connected to FastAPI backend (real data, no mocks)
+- ✅ Teacher dashboard loads live student list from database
+- ✅ Ask AI button with LLM-powered risk explanation modal
+- ✅ Role-based route protection (mentor/admin/principal only)
+- ✅ Real Supabase Auth login replacing all mock authentication
+- ✅ Public registration disabled (invitation only)
+- ✅ TypeScript types aligned with FastAPI response models
+- ✅ Centralized API client with JWT auth and timeout handling
+
+### What is not done yet
+- ❌ Student dashboard not connected to backend
+- ❌ Notification engine (email/SMS to guardians)
+- ❌ Docker containerization
+
+---
+
 ## 🔮 Future Enhancements
 
 ### Planned Features
@@ -854,9 +874,9 @@ Repository: [Emerging-Tools-Technologies](https://github.com/VarunNarayanJain/Em
 ![GitHub Issues](https://img.shields.io/github/issues/VarunNarayanJain/Emerging-Tools-Technologies)
 ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/VarunNarayanJain/Emerging-Tools-Technologies)
 
-**Current Version**: 1.2.0  
-**Last Updated**: March 23, 2026  
-**Status**: Live Service Deployment 🚀
+**Current Version**: 1.3.0  
+**Last Updated**: March 29, 2026  
+**Status**: Integration Phase Complete 🚀
 
 ---
 
