@@ -59,6 +59,7 @@ def _get_embedding_function() -> Any:
     global _embedding_fn
     if _embedding_fn is None:
         logger.info("Loading embedding model: %s (first run may take a moment)", EMBEDDING_MODEL)
+        # Set HF_TOKEN in .env to avoid HuggingFace rate limits under load
         _embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name=EMBEDDING_MODEL
         )

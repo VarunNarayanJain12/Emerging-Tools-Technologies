@@ -262,6 +262,7 @@ export interface StudentSummary {
 export interface ExplainRiskRequest {
   student_id: string;
   question: string;              // 5–500 chars, from mentor
+  conversation_history?: Array<{ role: 'user' | 'assistant'; content: string }>; // multi-turn context
 }
 
 export interface ExplainRiskResponse {
@@ -289,6 +290,8 @@ export interface RiskProfileContext {
   attendance: AttendanceRecord[];
   assessments: AssessmentRecord[];
   attempts: SubjectAttempt[];
+  sessions?: any[];
+  notifications?: any[];
 }
 
 // Auth types

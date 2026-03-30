@@ -39,8 +39,40 @@ export function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) 
 
   if (!userRole || !allowedRoles.includes(userRole)) {
     console.warn(`Access denied: User role "${userRole}" not allowed for this route.`);
-    // Redirect to home if unauthorized
-    return <Navigate to="/" replace />;
+    
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-6">
+        <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl border border-red-100 dark:border-red-900/30 shadow-xl max-w-md text-center space-y-6">
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-full w-20 h-20 flex items-center justify-center mx-auto text-red-500">
+            <AlertCircle className="h-10 w-10" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-outfit">Access Restricted</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              You are logged in as a <strong>{userRole || 'Unknown Role'}</strong>. 
+              This page requires a higher or different permission level.
+            </p>
+          </div>
+          
+          <div className="flex flex-col gap-3 pt-4">
+            <button 
+              onClick={() => window.location.href = '/login'}
+              className="px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-200 dark:hover:shadow-orange-900/40"
+            >
+              Back to Role Selection
+            </button>
+            <button 
+              onClick={() => {
+                supabase.auth.signOut().then(() => window.location.href = '/login');
+              }}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm font-medium"
+            >
+              Logout & Try Different Account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

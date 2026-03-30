@@ -138,7 +138,7 @@ CREATE TABLE users (
     user_id VARCHAR(50) PRIMARY KEY,
     email VARCHAR(100) UNIQUE NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-    role VARCHAR(30) NOT NULL CHECK (role IN ('admin', 'mentor', 'counsellor', 'guardian', 'principal')),
+    role VARCHAR(30) NOT NULL CHECK (role IN ('admin', 'mentor', 'counsellor', 'guardian', 'principal', 'student')),
     department VARCHAR(50),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { useNavigate } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { BellRing, LogOut, Loader2, AlertCircle } from 'lucide-react'
 import { EduAlertLogo } from '@/components/auth/EduAlertLogo'
@@ -16,8 +15,7 @@ import { studentService } from '@/services/studentService'
 import { RiskProfileContext } from '@/types'
 
 export default function StudentDashboard() {
-  const { user, userProfile, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const headerRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
   const badgeRef = useRef<HTMLDivElement>(null)
@@ -32,7 +30,12 @@ export default function StudentDashboard() {
       try {
         setLoading(true)
         setError(null)
-        const profile = await studentService.getStudentRiskProfile(user.id)
+        const studentId = await studentService.getStudentIdForUser(user.id)
+        if (!studentId) {
+          setError('No student record linked to your account. Please contact your mentor.')
+          return
+        }
+        const profile = await studentService.getStudentRiskProfile(studentId)
         setData(profile)
       } catch (err: any) {
         setError(err.message)
@@ -156,11 +159,30 @@ export default function StudentDashboard() {
             })) || []
           }} />
 
-          <SessionCard />
-          
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Notifications</p>
-            <NotificationItem />
+          <div>
+            <h2 className="text-xl font-bold mb-4">Counselling Sessions</h2>
+            <div className="flex flex-col gap-4">
+              {data?.sessions && data.sessions.length > 0 ? (
+                data.sessions.map((s: any, i: number) => (
+                  <SessionCard key={i} session={s} />
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground py-4">No recent counselling sessions.</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-xl font-bold mb-4">Latest Notifications</h2>
+            <div className="flex flex-col gap-3">
+              {data?.notifications && data.notifications.length > 0 ? (
+                data.notifications.map((n: any, j: number) => (
+                  <NotificationItem key={j} notification={n} />
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground py-4">No recent notifications.</p>
+              )}
+            </div>
           </div>
         </div>
       </main>

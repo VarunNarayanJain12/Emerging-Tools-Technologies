@@ -9,15 +9,7 @@ interface Session {
   session_type: 'individual' | 'group' | 'virtual'
 }
 
-const mock: Session = {
-  initiated_by_user_id: 'COUN-007',
-  session_date: '2026-03-19',
-  session_duration_minutes: 45,
-  topics_discussed: 'Discussed declining attendance pattern, mid-sem performance, and stress management strategies. Student agreed to attend remedial classes.',
-  session_type: 'individual',
-}
-
-export function SessionCard({ session = mock }: { session?: Session }) {
+export function SessionCard({ session }: { session: Session }) {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-2">

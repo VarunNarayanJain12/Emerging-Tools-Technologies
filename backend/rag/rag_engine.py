@@ -78,6 +78,8 @@ def get_student_context(student_id: str) -> dict[str, Any] | None:
             - 'attendance'   : list of up to 5 recent attendance records
             - 'assessments'  : list of up to 10 recent assessment records
             - 'attempts'     : list of all subject attempt records
+            - 'sessions'     : list of up to 3 recent counselling sessions
+            - 'notifications': list of up to 5 recent notification logs
         Returns None if the student_id does not exist in the students table.
 
     Raises:
@@ -206,6 +208,47 @@ def get_student_context(student_id: str) -> dict[str, Any] | None:
             for r in cur.fetchall()
         ]
 
+        # ── Query 6: Counselling sessions ──────────────────────────────────
+        cur.execute(
+            """
+            SELECT session_date, session_duration_minutes, session_type, topics_discussed, counsellor_id
+            FROM counselling_sessions
+            WHERE student_id = %s
+            ORDER BY session_date DESC LIMIT 3
+            """,
+            (student_id,),
+        )
+        sessions: list[dict[str, Any]] = [
+            {
+                "session_date": str(r[0]),
+                "session_duration_minutes": r[1],
+                "session_type": r[2],
+                "topics_discussed": r[3],
+                "counsellor_id": r[4],
+            }
+            for r in cur.fetchall()
+        ]
+
+        # ── Query 7: Notification logs ─────────────────────────────────────
+        cur.execute(
+            """
+            SELECT message_summary, notification_channel, created_at, risk_category
+            FROM notification_logs
+            WHERE student_id = %s
+            ORDER BY created_at DESC LIMIT 5
+            """,
+            (student_id,),
+        )
+        notifications: list[dict[str, Any]] = [
+            {
+                "message": r[0],
+                "channel": r[1],
+                "created_at": str(r[2]),
+                "risk_category": r[3],
+            }
+            for r in cur.fetchall()
+        ]
+
         logger.info(
             "Context fetched for '%s': risk=%s | attendance_rows=%d | "
             "assessment_rows=%d | attempt_rows=%d",
@@ -222,6 +265,8 @@ def get_student_context(student_id: str) -> dict[str, Any] | None:
             "attendance": attendance,
             "assessments": assessments,
             "attempts": attempts,
+            "sessions": sessions,
+            "notifications": notifications,
         }
 
     except Exception as e:
@@ -408,16 +453,20 @@ def build_prompt(
 # ─────────────────────────────────────────────
 
 
-def query_llm(prompt: str) -> str:
+def query_llm(prompt: str, conversation_history: list[dict] | None = None) -> str:
     """Send a prompt to the Groq LLM and return the response text.
 
     Reads GROQ_API_KEY from the .env file in backend/rag/.
-    Uses the llama3-70b-8192 model with a fixed system message that
+    Uses the llama-3.1-8b-instant model with a fixed system message that
     frames the assistant as an academic counsellor for an Indian
     engineering college.
 
     Args:
-        prompt: The fully constructed prompt string from build_prompt().
+        prompt:               The fully constructed prompt string from build_prompt().
+        conversation_history: Optional list of prior turns [{role, content}] for
+                              multi-turn context. Prepended before the current prompt
+                              so the LLM can answer follow-up questions coherently.
+                              If empty or None, behaviour is identical to before.
 
     Returns:
         The LLM's response as a plain string.
@@ -435,17 +484,31 @@ def query_llm(prompt: str) -> str:
             "Add it to backend/rag/.env — see .env.example for the format."
         )
 
-    logger.info("Calling Groq API | model=%s | prompt_chars=%d", GROQ_MODEL, len(prompt))
+    # Build messages list: system → prior turns → current prompt
+    messages: list[dict[str, str]] = [{"role": "system", "content": SYSTEM_MESSAGE}]
+
+    if conversation_history:
+        # Sanitise: only keep role/content, limit to last 10 turns to avoid token overflow
+        for turn in conversation_history[-10:]:
+            role = turn.get("role", "user")
+            content = str(turn.get("content", ""))
+            if role in ("user", "assistant") and content.strip():
+                messages.append({"role": role, "content": content})
+        logger.info(
+            "Multi-turn context: %d prior turn(s) prepended.", len(messages) - 1
+        )
+
+    messages.append({"role": "user", "content": prompt})
+
+    logger.info("Calling Groq API | model=%s | prompt_chars=%d | messages=%d",
+                GROQ_MODEL, len(prompt), len(messages))
 
     try:
         client = Groq(api_key=api_key)
         response = client.chat.completions.create(
             model=GROQ_MODEL,
             max_tokens=GROQ_MAX_TOKENS,
-            messages=[
-                {"role": "system", "content": SYSTEM_MESSAGE},
-                {"role": "user", "content": prompt},
-            ],
+            messages=messages,
         )
         content: str = response.choices[0].message.content
         logger.info(
@@ -465,7 +528,11 @@ def query_llm(prompt: str) -> str:
 # ─────────────────────────────────────────────
 
 
-def explain_student_risk(student_id: str, question: str) -> dict[str, Any]:
+def explain_student_risk(
+    student_id: str,
+    question: str,
+    conversation_history: list[dict] | None = None,
+) -> dict[str, Any]:
     """Full RAG pipeline: fetch → retrieve policies → build prompt → LLM → return.
 
     Runs two semantic searches against ChromaDB:
@@ -546,8 +613,8 @@ def explain_student_risk(student_id: str, question: str) -> dict[str, Any]:
         retrieved_policies=combined_policies,
     )
 
-    # ── Step 5: Call LLM ───────────────────────────────────────────────────
-    explanation = query_llm(prompt)
+    # ── Step 5: Call LLM (with optional multi-turn context) ───────────────
+    explanation = query_llm(prompt, conversation_history=conversation_history or [])
 
     # ── Step 6: Compute summary stats for the response ────────────────────
     attendance_records = context["attendance"]

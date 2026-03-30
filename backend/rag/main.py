@@ -84,6 +84,10 @@ class ExplainRiskRequest(BaseModel):
         max_length=500,
         description="Natural language question from the mentor.",
     )
+    conversation_history: list[dict] = Field(
+        default_factory=list,
+        description="Previous turns [{role, content}] for multi-turn context.",
+    )
 
 
 class StudentSummaryFlag(BaseModel):
@@ -375,6 +379,7 @@ async def explain_risk(body: ExplainRiskRequest) -> ExplainRiskResponse:
         result = explain_student_risk(
             student_id=body.student_id,
             question=body.question,
+            conversation_history=body.conversation_history,
         )
     except ValueError as e:
         # Student not found

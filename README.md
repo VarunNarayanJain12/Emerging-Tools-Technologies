@@ -705,7 +705,7 @@ graph TD
 
 ---
 
-## 🟢 Project Progress (v1.3.0)
+## 🟢 Project Progress (v1.4.0)
 
 ### What is fully working
 - ✅ Frontend connected to FastAPI backend (real data, no mocks)
@@ -716,9 +716,13 @@ graph TD
 - ✅ Public registration disabled (invitation only)
 - ✅ TypeScript types aligned with FastAPI response models
 - ✅ Centralized API client with JWT auth and timeout handling
+- ✅ **v1.4.0** Persistent AI chat history per student per mentor (localStorage key: `ews_chat_{mentorId}_{studentId}`)
+- ✅ **v1.4.0** Multi-turn conversation context sent to LLM for coherent follow-ups
+- ✅ **v1.4.0** Full seed data for all 15 DB tables (8 students: 3 GREEN / 3 YELLOW / 2 RED)
+- ✅ **v1.4.0** Student dashboard connected to real backend via `user_students` lookup
+- ✅ **v1.4.0** HF_TOKEN documented in `.env.example` to prevent HuggingFace rate limits
 
 ### What is not done yet
-- ❌ Student dashboard not connected to backend
 - ❌ Notification engine (email/SMS to guardians)
 - ❌ Docker containerization
 

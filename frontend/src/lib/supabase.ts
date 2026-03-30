@@ -9,7 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false, // Set to false if not using OAuth/Email Magic Links to save overhead
+    storageKey: 'academic-ews-auth-v1.4' // Unique key to bypass stale locks from previous versions
+  }
+});
 
 // Export type for convenience
 export type Database = any; // Will be auto-generated later
