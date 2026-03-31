@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Loader2, Bot, ShieldCheck, Trash2, History } from 'lucide-react';
 import { gsap } from 'gsap';
 import { riskService } from '@/services/riskService';
-import { ExplainRiskResponse } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 
 interface ChatMessage {

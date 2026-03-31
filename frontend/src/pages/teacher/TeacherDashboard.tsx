@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { useNavigate } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { LogOut, Users, Loader2, AlertCircle, Bot } from 'lucide-react'
 import { EduAlertLogo } from '@/components/auth/EduAlertLogo'
@@ -97,7 +96,7 @@ function StudentCard({
 
 export default function TeacherDashboard() {
   const { user, userProfile, logout } = useAuth()
-  const navigate = useNavigate()
+  // const navigate = useNavigate()
   const headerRef = useRef<HTMLDivElement>(null)
 
   const [summary, setSummary] = useState<RiskEvaluationSummary | null>(null)

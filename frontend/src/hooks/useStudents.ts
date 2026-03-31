@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Student } from '@/types';
+import { StudentListItem } from '@/types';
 import { studentService } from '@/services/studentService';
 
 interface UseStudentsOptions {
@@ -9,7 +9,7 @@ interface UseStudentsOptions {
 }
 
 export const useStudents = (options?: UseStudentsOptions) => {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<StudentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -18,7 +18,8 @@ export const useStudents = (options?: UseStudentsOptions) => {
       try {
         setLoading(true);
         setError(null);
-        const data = await studentService.getAllStudents(options);
+        // Note: studentService.getAllStudents now optionally accepts options
+        const data = await studentService.getAllStudents(); 
         setStudents(data);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch students'));
@@ -45,7 +46,7 @@ export const useStudents = (options?: UseStudentsOptions) => {
   const refetch = async () => {
     try {
       setLoading(true);
-      const data = await studentService.getAllStudents(options);
+      const data = await studentService.getAllStudents();
       setStudents(data);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch students'));

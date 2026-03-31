@@ -109,4 +109,14 @@ export const studentService = {
   // Note: Other legacy methods that were direct Supabase calls have been removed
   // as they are no longer the primary data source for student-facing data.
   // Full student list and filtering for teachers should be implemented as API endpoints.
+
+  async searchStudents(query: string): Promise<StudentListItem[]> {
+    const students = await this.getAllStudents();
+    const q = query.toLowerCase();
+    return students.filter(s => 
+      s.full_name.toLowerCase().includes(q) || 
+      s.student_id.toLowerCase().includes(q) ||
+      s.roll_number.toLowerCase().includes(q)
+    );
+  }
 };
