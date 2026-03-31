@@ -193,10 +193,13 @@ async def startup_event() -> None:
     logger.info("Application startup: deferred initialization started.")
 
     async def background_initialization():
+        # WAIT for Render to see the port!
+        # Giving 30 seconds for port scan and health checks to pass.
+        logger.info("Background Startup: waiting 30s before starting heavy model load...")
+        await asyncio.sleep(30)
+        
         logger.info("Background Startup: starting policy vector store initialization...")
         try:
-            # Note: ensure_policies_loaded might be blocking, 
-            # ideally it should be async but we run it in a thread/task
             chunks_loaded = await asyncio.to_thread(ensure_policies_loaded)
             if chunks_loaded > 0:
                 logger.info("Background Startup: loaded %d new policy chunk(s).", chunks_loaded)
@@ -207,7 +210,7 @@ async def startup_event() -> None:
 
     # Fire and forget the heavy lifting
     asyncio.create_task(background_initialization())
-    logger.info("Application startup: server ready for requests.")
+    logger.info("Application startup: server ready for requests — port binding should follow.")
 
 
 # ─────────────────────────────────────────────
