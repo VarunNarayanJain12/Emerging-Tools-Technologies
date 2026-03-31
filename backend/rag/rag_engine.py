@@ -52,8 +52,11 @@ PROMPT_CHAR_LIMIT: int = 3500
 
 SYSTEM_MESSAGE: str = (
     "You are an academic counsellor assistant for an Indian engineering college. "
-    "You explain student risk factors clearly and suggest specific, actionable "
-    "interventions grounded in institutional policy. Be direct, empathetic, and practical."
+    "Your goal is to provide risk explanations and interventions based ONLY on the "
+    "provided student data and institutional policies. "
+    "DO NOT make up facts about the student. DO NOT hallucinate policies not listed. "
+    "If information is missing, simply state that it is not available. "
+    "Be direct, empathetic, and practical."
 )
 
 # ─────────────────────────────────────────────
@@ -95,11 +98,10 @@ def get_student_context(student_id: str) -> dict[str, Any] | None:
         # ── Query 1: Current risk profile ──────────────────────────────────
         cur.execute(
             """
-            SELECT student_id, attendance_risk, performance_risk,
-                   attempt_risk, fee_risk, risk_score, risk_category,
-                   rule_version, reason_json, last_evaluated_at
-            FROM risk_profiles
-            WHERE student_id = %s AND is_current = TRUE
+            SELECT student_id, overall_risk_score, risk_category,
+                   component_scores, last_calculated_at
+            FROM risk_scores
+            WHERE student_id = %s
             LIMIT 1
             """,
             (student_id,),
@@ -109,15 +111,10 @@ def get_student_context(student_id: str) -> dict[str, Any] | None:
         if risk_row:
             risk_profile = {
                 "student_id": risk_row[0],
-                "attendance_risk": risk_row[1],
-                "performance_risk": risk_row[2],
-                "attempt_risk": risk_row[3],
-                "fee_risk": risk_row[4],
-                "risk_score": risk_row[5],
-                "risk_category": risk_row[6],
-                "rule_version": risk_row[7],
-                "reason_json": risk_row[8],
-                "last_evaluated_at": str(risk_row[9]) if risk_row[9] else None,
+                "risk_score": risk_row[1],
+                "risk_category": risk_row[2],
+                "reason_json": risk_row[3],
+                "last_evaluated_at": str(risk_row[4]) if risk_row[4] else None,
             }
 
         # ── Query 2: Student basic info ────────────────────────────────────
@@ -429,6 +426,14 @@ def build_prompt(
             policy_text_parts.append(f"\n[{pol['title']}]\n{snippet}")
         sections.append("\n".join(policy_text_parts))
 
+    # Constraints
+    sections.append(
+        "\n=== CONSTRAINTS ===\n"
+        "1. GROUNDING: Use only the above profile and policies.\n"
+        "2. ACCURACY: Do not invent subject names or scores.\n"
+        "3. INTERVENTION: If policies are provided, map them to current student issues.\n"
+    )
+
     # Mentor question
     sections.append(f"\n=== MENTOR QUESTION ===\n{mentor_question}")
 
@@ -637,8 +642,10 @@ def explain_student_risk(
 
     flags_triggered: list[str] = []
     if risk_profile:
+        reason_json = risk_profile.get("reason_json") or {}
+        # The new risk_scores table stores triggers in the reason_json keys or nested
         for flag in ("attendance_risk", "performance_risk", "attempt_risk", "fee_risk"):
-            if risk_profile.get(flag):
+            if reason_json.get(flag, {}).get("triggered"):
                 flags_triggered.append(flag)
 
     return {

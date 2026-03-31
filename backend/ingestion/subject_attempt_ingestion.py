@@ -98,6 +98,16 @@ def process_subject_attempts():
     cur.close()
     conn.close()
 
+    if batch_data:
+        print("🔄 Recalculating risk scores for affected students...")
+        from backend.risk_engine.risk_scorer import calculate_and_persist_risk
+        unique_students = set(row[0] for row in batch_data)
+        for sid in unique_students:
+            try:
+                calculate_and_persist_risk(sid, trigger='ingestion')
+            except Exception as e:
+                print(f"  ⚠️ Failed to recalculate risk for {sid}: {e}")
+
     print(f"✅ Subject attempt upload complete ({len(batch_data)} records)")
     print(f"⚠️ Skipped {skipped} invalid rows")
 

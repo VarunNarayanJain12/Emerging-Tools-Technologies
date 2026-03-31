@@ -113,8 +113,8 @@ export default function TeacherDashboard() {
       try {
         setLoading(true)
         setError(null)
-        // 1. Run/Get evaluation summary
-        const evalSum = await riskService.runRiskEvaluation()
+        // 1. Get pre-computed evaluation summary (ReadOnly & Fast)
+        const evalSum = await riskService.getRiskSummary()
         setSummary(evalSum)
 
         // 2. Fetch all active students

@@ -12,8 +12,10 @@ Run:
 """
 
 import logging
+import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -35,7 +37,11 @@ from backend.rag.rag_engine import (                          # noqa: E402
     get_student_context,
 )
 from backend.rag.vector_store import initialize_vector_store  # noqa: E402
-from backend.risk_engine.risk_scorer import run_risk_evaluation  # noqa: E402
+from backend.risk_engine.risk_scorer import (                 # noqa: E402
+    calculate_all_risks,
+    calculate_and_persist_risk,
+)
+import asyncio
 
 # ─────────────────────────────────────────────
 # Logging
@@ -132,14 +138,25 @@ class HealthResponse(BaseModel):
 
 
 class RiskEvaluationSummary(BaseModel):
-    """Response for POST /run-risk-evaluation."""
-
+    """Unified summary for risk evaluation runs and dashboard stats."""
     total_students: int
     green: int
     yellow: int
     red: int
-    evaluation_run_id: str
-    rule_version: str
+    evaluation_run_id: str | None = None
+    rule_version: str | None = None
+    last_updated: datetime | None = None
+
+# Alias for compatibility if needed elsewhere
+RiskSummaryDetail = RiskEvaluationSummary
+
+
+class RiskScoreResponse(BaseModel):
+    """Response for risk score calculation."""
+    student_id: str
+    risk_score: float
+    risk_category: str
+    last_calculated_at: datetime = Field(default_factory=datetime.now)
 
 
 class StudentListItem(BaseModel):
@@ -150,6 +167,8 @@ class StudentListItem(BaseModel):
     roll_number: str
     department: str
     status: str
+    risk_score: float | None = None
+    risk_category: str | None = None
 
 
 class StudentsListResponse(BaseModel):
@@ -166,26 +185,29 @@ class StudentsListResponse(BaseModel):
 
 @app.on_event("startup")
 async def startup_event() -> None:
-    """Load institutional policies into ChromaDB on application startup.
+    """Initialize system components asynchronously on application startup.
 
-    Calls ensure_policies_loaded() which only performs embedding if
-    ChromaDB is currently empty, making restarts fast. If policy loading
-    fails for any reason, the error is logged but the server continues
-    running so health checks and other diagnostics remain accessible.
+    Defers heavy tasks like policy embedding to background tasks to avoid
+    blocking the main event loop and ensuring fast port binding (< 5s).
     """
-    logger.info("Application startup: initialising policy vector store...")
-    try:
-        chunks_loaded = ensure_policies_loaded()
-        if chunks_loaded > 0:
-            logger.info("Startup: loaded %d new policy chunk(s) into ChromaDB.", chunks_loaded)
-        else:
-            logger.info("Startup: policies already in ChromaDB — skipping re-load.")
-    except Exception as e:
-        logger.error(
-            "Startup: policy loading failed — server will start without policies. "
-            "Error: %s",
-            e,
-        )
+    logger.info("Application startup: deferred initialization started.")
+
+    async def background_initialization():
+        logger.info("Background Startup: starting policy vector store initialization...")
+        try:
+            # Note: ensure_policies_loaded might be blocking, 
+            # ideally it should be async but we run it in a thread/task
+            chunks_loaded = await asyncio.to_thread(ensure_policies_loaded)
+            if chunks_loaded > 0:
+                logger.info("Background Startup: loaded %d new policy chunk(s).", chunks_loaded)
+            else:
+                logger.info("Background Startup: policies already in ChromaDB.")
+        except Exception as e:
+            logger.error("Background Startup: policy loading failed — %s", e)
+
+    # Fire and forget the heavy lifting
+    asyncio.create_task(background_initialization())
+    logger.info("Application startup: server ready for requests.")
 
 
 # ─────────────────────────────────────────────
@@ -244,6 +266,34 @@ async def health_check() -> HealthResponse:
     )
 
 
+@app.get("/risk-evaluation/summary", tags=["Admin"])
+async def get_risk_evaluation_summary() -> RiskSummaryDetail:
+    """Get the current aggregate risk statistics from the pre-computed table."""
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN risk_category = 'GREEN' THEN 1 ELSE 0 END),
+                SUM(CASE WHEN risk_category = 'YELLOW' THEN 1 ELSE 0 END),
+                SUM(CASE WHEN risk_category = 'RED' THEN 1 ELSE 0 END),
+                MAX(last_calculated_at)
+            FROM risk_scores
+        """)
+        row = cur.fetchone()
+        return RiskEvaluationSummary(
+            total_students=int(row[0] or 0),
+            green=int(row[1] or 0),
+            yellow=int(row[2] or 0),
+            red=int(row[3] or 0),
+            last_updated=row[4]
+        )
+    finally:
+        cur.close()
+        conn.close()
+
+
 # ─────────────────────────────────────────────
 # ENDPOINT 1.5 — Student Listing
 # ─────────────────────────────────────────────
@@ -269,8 +319,11 @@ async def list_students() -> StudentsListResponse:
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(
-            "SELECT student_id, full_name, roll_number, department, status "
-            "FROM students WHERE status = 'active'"
+            "SELECT s.student_id, s.full_name, s.roll_number, s.department, s.status, "
+            "       rs.overall_risk_score, rs.risk_category "
+            "FROM students s "
+            "LEFT JOIN risk_scores rs ON s.student_id = rs.student_id "
+            "WHERE s.status = 'active'"
         )
         rows = cur.fetchall()
         
@@ -280,12 +333,14 @@ async def list_students() -> StudentsListResponse:
                 full_name=row[1],
                 roll_number=row[2],
                 department=row[3],
-                status=row[4]
+                status=row[4],
+                risk_score=row[5],
+                risk_category=row[6]
             )
             for row in rows
         ]
 
-        logger.info("GET /students — returned %d student(s).", len(students))
+        logger.info("GET /students — returned %d student(s) with pre-computed risk.", len(students))
         return StudentsListResponse(students=students, total=len(students))
 
     except Exception as e:
@@ -340,6 +395,35 @@ async def get_risk_profile(student_id: str) -> dict[str, Any]:
         )
 
     logger.info("/risk-profile/%s — returned successfully.", student_id)
+    # Refactor context to use risk_scores for speed
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT overall_risk_score, risk_category, component_scores, last_calculated_at 
+                FROM risk_scores WHERE student_id = %s
+            """, (student_id,))
+            risk_row = cur.fetchone()
+            
+            if risk_row:
+                risk_data = risk_row[2]
+                if isinstance(risk_data, str):
+                    try:
+                        risk_data = json.loads(risk_data)
+                    except:
+                        risk_data = {}
+
+                context["risk_profile"] = {
+                    "risk_score": risk_row[0],
+                    "risk_category": risk_row[1],
+                    "updated_at": risk_row[3],
+                    "attendance_risk": risk_data.get('attendance_risk', {}).get('triggered', False),
+                    "performance_risk": risk_data.get('performance_risk', {}).get('triggered', False),
+                    "attempt_risk": risk_data.get('attempt_risk', {}).get('triggered', False),
+                    "fee_risk": risk_data.get('fee_risk', {}).get('triggered', False)
+                }
+    finally:
+        conn.close()
     return context
 
 
@@ -435,55 +519,63 @@ async def get_student_summary(student_id: str) -> StudentSummary:
     logger.info("GET /students/%s/summary", student_id)
 
     try:
-        context = get_student_context(student_id)
-    except RuntimeError as e:
-        logger.error("/students/%s/summary — DB error: %s", student_id, e)
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT s.full_name, rs.risk_category, rs.overall_risk_score, "
+            "       rs.component_scores, rs.last_calculated_at "
+            "FROM students s "
+            "LEFT JOIN risk_scores rs ON s.student_id = rs.student_id "
+            "WHERE s.student_id = %s",
+            (student_id,)
+        )
+        row = cur.fetchone()
+        
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Student {student_id} not found.")
+
+        # If no risk score yet, return defaults
+        name, category, score, component_scores, last_calc = row
+        
+        # Parse component_scores if it's a string
+        if isinstance(component_scores, str):
+            try:
+                component_scores = json.loads(component_scores)
+            except:
+                component_scores = {}
+
+        # Calculate flags from component_scores if present
+        flags_triggered = []
+        if component_scores:
+            for flag, data in component_scores.items():
+                if isinstance(data, dict) and data.get("triggered"):
+                    flags_triggered.append(flag)
+
+        # Get avg attendance from component_scores
+        avg_attendance = None
+        if component_scores and "attendance_risk" in component_scores:
+            avg_attendance = component_scores["attendance_risk"].get("value")
+
+        return StudentSummary(
+            student_id=student_id,
+            student_name=name,
+            risk_category=category,
+            risk_score=int(score) if score is not None else None,
+            flags_triggered=flags_triggered,
+            avg_attendance=avg_attendance,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("/students/%s/summary — error: %s", student_id, e)
         raise HTTPException(
             status_code=500,
             detail="Unable to fetch student summary. Please try again later.",
         )
-
-    if context is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Student {student_id} not found.",
-        )
-
-    student = context["student"]
-    risk = context["risk_profile"]
-    attendance_records = context["attendance"]
-
-    # Compute avg attendance
-    avg_attendance: float | None = None
-    if attendance_records:
-        avg_attendance = round(
-            sum(r["attendance_percentage"] for r in attendance_records)
-            / len(attendance_records),
-            1,
-        )
-
-    # Compute triggered flags
-    flags_triggered: list[str] = []
-    if risk:
-        for flag in ("attendance_risk", "performance_risk", "attempt_risk", "fee_risk"):
-            if risk.get(flag):
-                flags_triggered.append(flag)
-
-    logger.info(
-        "/students/%s/summary — returned | category=%s | flags=%s",
-        student_id,
-        risk["risk_category"] if risk else None,
-        flags_triggered,
-    )
-
-    return StudentSummary(
-        student_id=student["student_id"],
-        student_name=student["full_name"],
-        risk_category=risk["risk_category"] if risk else None,
-        risk_score=risk["risk_score"] if risk else None,
-        flags_triggered=flags_triggered,
-        avg_attendance=avg_attendance,
-    )
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
 
 
 # ─────────────────────────────────────────────
@@ -497,35 +589,69 @@ async def get_student_summary(student_id: str) -> StudentSummary:
     tags=["Risk Engine"],
 )
 async def trigger_risk_evaluation() -> RiskEvaluationSummary:
-    """Trigger a full system-wide risk evaluation for all active students.
-    
-    This endpoint calls the underlying risk engine to:
-    1. Load active thresholds.
-    2. Aggregate data for every active student.
-    3. Apply multi-factor scoring rules.
-    4. Persist result snapshots to PostgreSQL.
-    
-    Returns:
-        RiskEvaluationSummary with counts of GREEN, YELLOW, and RED students.
-        
-    Raises:
-        500: If the evaluation engine fails.
-    """
+    """Trigger a full system-wide risk evaluation for all active students."""
     logger.info("POST /run-risk-evaluation — batch process triggered.")
     try:
-        summary = run_risk_evaluation()
-        logger.info(
-            "/run-risk-evaluation — complete | run_id=%s | total=%d",
-            summary["evaluation_run_id"],
-            summary["total_students"],
+        summary = calculate_all_risks(trigger='manual_recalc')
+        return RiskEvaluationSummary(
+            total_students=summary["total_students"],
+            green=summary["green"],
+            yellow=summary["yellow"],
+            red=summary["red"],
+            evaluation_run_id=summary["evaluation_run_id"],
+            rule_version=summary["rule_version"],
+            last_updated=datetime.now()
         )
-        return RiskEvaluationSummary(**summary)
     except Exception as e:
         logger.error("/run-risk-evaluation — batch failed: %s", e)
         raise HTTPException(
             status_code=500,
             detail="Risk evaluation engine failed to complete batch process.",
         )
+
+
+@app.post(
+    "/students/{student_id}/recalculate-risk",
+    response_model=RiskScoreResponse,
+    tags=["Risk Engine"],
+)
+async def recalculate_student_risk(student_id: str) -> RiskScoreResponse:
+    """Manually trigger a priority risk recalculation for a single student."""
+    logger.info("POST /students/%s/recalculate-risk", student_id)
+    try:
+        result = calculate_and_persist_risk(student_id, trigger='manual_recalc')
+        return RiskScoreResponse(
+            student_id=student_id,
+            risk_score=result["risk_score"],
+            risk_category=result["risk_category"]
+        )
+    except Exception as e:
+        logger.error("Recalculate failed for student %s: %s", student_id, e)
+        raise HTTPException(status_code=500, detail="Recalculation failed.")
+
+
+@app.post(
+    "/admin/recalculate-all-risks",
+    response_model=RiskEvaluationSummary,
+    tags=["Risk Engine"],
+)
+async def bulk_recalculate_risks() -> RiskEvaluationSummary:
+    """Manually trigger a priority risk recalculation for ALL students."""
+    logger.info("POST /admin/recalculate-all-risks")
+    try:
+        summary = calculate_all_risks(trigger='manual_recalc')
+        return RiskEvaluationSummary(
+            total_students=summary["total_students"],
+            green=summary["green"],
+            yellow=summary["yellow"],
+            red=summary["red"],
+            evaluation_run_id=summary["evaluation_run_id"],
+            rule_version=summary["rule_version"],
+            last_updated=datetime.now()
+        )
+    except Exception as e:
+        logger.error("Bulk recalculation failed: %s", e)
+        raise HTTPException(status_code=500, detail="Bulk recalculation failed.")
 
 
 # ─────────────────────────────────────────────

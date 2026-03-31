@@ -111,6 +111,16 @@ def process_weekly_attendance():
     cur.close()
     conn.close()
 
+    if batch_data:
+        print("🔄 Recalculating risk scores for affected students...")
+        from backend.risk_engine.risk_scorer import calculate_and_persist_risk
+        unique_students = set(row[0] for row in batch_data)
+        for sid in unique_students:
+            try:
+                calculate_and_persist_risk(sid, trigger='ingestion')
+            except Exception as e:
+                print(f"  ⚠️ Failed to recalculate risk for {sid}: {e}")
+
     print(f"✅ Attendance uploaded successfully ({len(batch_data)} records)")
     if skipped_count > 0:
         print(f"⚠️ Skipped {skipped_count} records (no classes)")

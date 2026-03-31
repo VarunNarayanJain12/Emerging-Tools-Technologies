@@ -16,6 +16,13 @@ export const riskService = {
   },
 
   /**
+   * Get the pre-computed risk evaluation summary (read-only).
+   */
+  async getRiskSummary(): Promise<RiskEvaluationSummary> {
+    return apiFetch<RiskEvaluationSummary>('/risk-evaluation/summary');
+  },
+
+  /**
    * Generate an LLM-powered explanation for a student's risk status.
    */
   async explainRisk(payload: ExplainRiskRequest): Promise<ExplainRiskResponse> {
