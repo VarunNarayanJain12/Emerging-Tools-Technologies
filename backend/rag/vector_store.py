@@ -62,7 +62,7 @@ def _get_embedding_function() -> Any:
             _embedding_fn = embedding_functions.DefaultEmbeddingFunction()
         else:
             logger.info("Initializing Hugging Face Inference API with model: %s", EMBEDDING_MODEL)
-            _embedding_fn = embedding_functions.HuggingFaceInferenceAPIEmbeddingFunction(
+            _embedding_fn = embedding_functions.HuggingFaceEmbeddingFunction(
                 api_key=hf_token,
                 model_name=EMBEDDING_MODEL
             )
