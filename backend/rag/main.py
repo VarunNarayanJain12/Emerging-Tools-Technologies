@@ -178,6 +178,16 @@ class StudentsListResponse(BaseModel):
     total: int
 
 
+@app.get("/", tags=["Monitoring"])
+async def root():
+    """Root endpoint for Render health checks."""
+    return {
+        "status": "ok",
+        "message": "Academic Early Warning System API is running.",
+        "timestamp": datetime.now().isoformat()
+    }
+
+
 # ─────────────────────────────────────────────
 # Startup event
 # ─────────────────────────────────────────────
@@ -194,9 +204,9 @@ async def startup_event() -> None:
 
     async def background_initialization():
         # WAIT for Render to see the port!
-        # Giving 30 seconds for port scan and health checks to pass.
-        logger.info("Background Startup: waiting 30s before starting heavy model load...")
-        await asyncio.sleep(30)
+        # Giving 12 seconds for port scan and health checks to pass.
+        logger.info("Background Startup: waiting 12s before starting heavy model load...")
+        await asyncio.sleep(12)
         
         logger.info("Background Startup: starting policy vector store initialization...")
         try:
