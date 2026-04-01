@@ -13,6 +13,10 @@ Run standalone:
 import logging
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# load .env from current directory before importing vector_store
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 from backend.rag.vector_store import embed_and_store, initialize_vector_store
 

@@ -16,13 +16,13 @@ from typing import Any
 
 import chromadb
 from chromadb.utils import embedding_functions
-# No local model imports needed for API-based approach
+from huggingface_hub import InferenceClient
 
 # ─────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────
 
-COLLECTION_NAME: str = "institutional_policies_v3"
+COLLECTION_NAME: str = "institutional_policies_v5"
 EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
 
 # Persistent storage is always relative to this file, not the caller's CWD
@@ -47,26 +47,47 @@ _collection: chromadb.Collection | None = None
 _embedding_fn: Any | None = None
 
 
-def _get_embedding_function() -> Any:
-    """Load the Hugging Face Inference API embedding function.
+class HFInferenceEF(embedding_functions.EmbeddingFunction):
+    """Custom Embedding Function using huggingface_hub's InferenceClient."""
+    def __init__(self, api_key: str, model_name: str):
+        self.client = InferenceClient(token=api_key)
+        self.model_name = model_name
 
-    Uses the BAAI/bge-small-en-v1.5 model via API, which ensures 
-    ZERO RAM overhead on the server.
+    def __call__(self, input: chromadb.Documents) -> chromadb.Embeddings:
+        # BAAI/bge-small-en-v1.5 expects raw strings and returns feature vectors
+        try:
+            embeddings = self.client.feature_extraction(
+                input,
+                model=self.model_name
+            )
+            # embeddings is a numpy array or nested list depending on version
+            # ChromaDB expects a list of lists of floats
+            if hasattr(embeddings, "tolist"):
+                return embeddings.tolist()
+            return embeddings
+        except Exception as e:
+            logger.error("HF Inference API error: %s", e)
+            raise RuntimeError(f"Failed to embed documents via API: {e}") from e
+
+def _get_embedding_function() -> Any:
+    """Load the custom HF Inference API embedding function.
+
+    Uses InferenceClient from huggingface_hub, which is more reliable
+    than ChromaDB's internal wrappers.
     """
     global _embedding_fn
     if _embedding_fn is None:
         hf_token = os.getenv("HF_TOKEN")
         if not hf_token:
             logger.warning("HF_TOKEN missing from .env! RAG will use default mock embeddings (not for production).")
-            # Fallback or raise error? For now, we'll return the default EF but log the warning.
             _embedding_fn = embedding_functions.DefaultEmbeddingFunction()
         else:
-            logger.info("Initializing Hugging Face Inference API with model: %s", EMBEDDING_MODEL)
-            _embedding_fn = embedding_functions.HuggingFaceEmbeddingFunction(
+            logger.info("Initializing Custom HF InferenceClient with model: %s", EMBEDDING_MODEL)
+            _embedding_fn = HFInferenceEF(
                 api_key=hf_token,
                 model_name=EMBEDDING_MODEL
             )
-            logger.info("HF API Embedding Function initialized.")
+            logger.info("Custom HF API Embedding Function initialized.")
     return _embedding_fn
 
 
