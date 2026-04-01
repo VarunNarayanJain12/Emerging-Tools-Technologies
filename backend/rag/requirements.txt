@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 chromadb
-fastembed
+# fastembed removed to save RAM and avoid build errors
 groq
 python-dotenv
 psycopg2-binary

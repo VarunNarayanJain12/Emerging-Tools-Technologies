@@ -16,13 +16,13 @@ from typing import Any
 
 import chromadb
 from chromadb.utils import embedding_functions
-# Lazy import for fastembed inside the class to prevent startup crash if missing
+# No local model imports needed for API-based approach
 
 # ─────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────
 
-COLLECTION_NAME: str = "institutional_policies_v2"
+COLLECTION_NAME: str = "institutional_policies_v3"
 EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
 
 # Persistent storage is always relative to this file, not the caller's CWD
@@ -47,36 +47,26 @@ _collection: chromadb.Collection | None = None
 _embedding_fn: Any | None = None
 
 
-class FastEmbedEF(embedding_functions.EmbeddingFunction):
-    """Custom ChromaDB-compatible embedding function using FastEmbed."""
-    def __init__(self, model_name: str):
-        try:
-            from fastembed import TextEmbedding
-            # TextEmbedding(model_name=...) loads the model once
-            self.model = TextEmbedding(model_name=model_name)
-        except ImportError:
-            logger.error("fastembed not installed. RAG features will be unavailable.")
-            self.model = None
-
-    def __call__(self, input: chromadb.Documents) -> chromadb.Embeddings:
-        if self.model is None:
-            raise RuntimeError("FastEmbed model not loaded. Please install 'fastembed'.")
-        # fastembed returns an iterable of numpy arrays
-        return [e.tolist() for e in self.model.embed(input)]
-
-
 def _get_embedding_function() -> Any:
-    """Load and cache the FastEmbed embedding function.
+    """Load the Hugging Face Inference API embedding function.
 
-    Uses the BAAI/bge-small-en-v1.5 model via fastembed, which is 
-    extremely lightweight and optimized for memory-constrained 
-    environments like Render's free tier.
+    Uses the BAAI/bge-small-en-v1.5 model via API, which ensures 
+    ZERO RAM overhead on the server.
     """
     global _embedding_fn
     if _embedding_fn is None:
-        logger.info("Initializing FastEmbed with model: %s", EMBEDDING_MODEL)
-        _embedding_fn = FastEmbedEF(model_name=EMBEDDING_MODEL)
-        logger.info("FastEmbed initialized successfully.")
+        hf_token = os.getenv("HF_TOKEN")
+        if not hf_token:
+            logger.warning("HF_TOKEN missing from .env! RAG will use default mock embeddings (not for production).")
+            # Fallback or raise error? For now, we'll return the default EF but log the warning.
+            _embedding_fn = embedding_functions.DefaultEmbeddingFunction()
+        else:
+            logger.info("Initializing Hugging Face Inference API with model: %s", EMBEDDING_MODEL)
+            _embedding_fn = embedding_functions.HuggingFaceInferenceAPIEmbeddingFunction(
+                api_key=hf_token,
+                model_name=EMBEDDING_MODEL
+            )
+            logger.info("HF API Embedding Function initialized.")
     return _embedding_fn
 
 
