@@ -13,10 +13,14 @@ import logging
 import os
 from pathlib import Path
 from typing import Any
+from dotenv import load_dotenv
 
 import chromadb
 from chromadb.utils import embedding_functions
 from huggingface_hub import InferenceClient
+
+# load .env from current directory on import
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 # ─────────────────────────────────────────────
 # Constants
