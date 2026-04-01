@@ -16,7 +16,7 @@ from typing import Any
 
 import chromadb
 from chromadb.utils import embedding_functions
-from fastembed import TextEmbedding
+# Lazy import for fastembed inside the class to prevent startup crash if missing
 
 # ─────────────────────────────────────────────
 # Constants
@@ -50,10 +50,17 @@ _embedding_fn: Any | None = None
 class FastEmbedEF(embedding_functions.EmbeddingFunction):
     """Custom ChromaDB-compatible embedding function using FastEmbed."""
     def __init__(self, model_name: str):
-        # TextEmbedding(model_name=...) loads the model once
-        self.model = TextEmbedding(model_name=model_name)
+        try:
+            from fastembed import TextEmbedding
+            # TextEmbedding(model_name=...) loads the model once
+            self.model = TextEmbedding(model_name=model_name)
+        except ImportError:
+            logger.error("fastembed not installed. RAG features will be unavailable.")
+            self.model = None
 
     def __call__(self, input: chromadb.Documents) -> chromadb.Embeddings:
+        if self.model is None:
+            raise RuntimeError("FastEmbed model not loaded. Please install 'fastembed'.")
         # fastembed returns an iterable of numpy arrays
         return [e.tolist() for e in self.model.embed(input)]
 
