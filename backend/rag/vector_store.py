@@ -16,13 +16,14 @@ from typing import Any
 
 import chromadb
 from chromadb.utils import embedding_functions
+from fastembed import TextEmbedding
 
 # ─────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────
 
-COLLECTION_NAME: str = "institutional_policies"
-EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+COLLECTION_NAME: str = "institutional_policies_v2"
+EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
 
 # Persistent storage is always relative to this file, not the caller's CWD
 CHROMA_DB_PATH: str = str(Path(__file__).parent / "chroma_db")
@@ -46,24 +47,29 @@ _collection: chromadb.Collection | None = None
 _embedding_fn: Any | None = None
 
 
+class FastEmbedEF(embedding_functions.EmbeddingFunction):
+    """Custom ChromaDB-compatible embedding function using FastEmbed."""
+    def __init__(self, model_name: str):
+        # TextEmbedding(model_name=...) loads the model once
+        self.model = TextEmbedding(model_name=model_name)
+
+    def __call__(self, input: chromadb.Documents) -> chromadb.Embeddings:
+        # fastembed returns an iterable of numpy arrays
+        return [e.tolist() for e in self.model.embed(input)]
+
+
 def _get_embedding_function() -> Any:
-    """Load and cache the sentence-transformers embedding function.
+    """Load and cache the FastEmbed embedding function.
 
-    Uses the all-MiniLM-L6-v2 model which produces 384-dimension
-    embeddings. The model is downloaded on first use (~80 MB) and
-    cached locally by sentence-transformers.
-
-    Returns:
-        chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction
+    Uses the BAAI/bge-small-en-v1.5 model via fastembed, which is 
+    extremely lightweight and optimized for memory-constrained 
+    environments like Render's free tier.
     """
     global _embedding_fn
     if _embedding_fn is None:
-        logger.info("Loading embedding model: %s (first run may take a moment)", EMBEDDING_MODEL)
-        # Set HF_TOKEN in .env to avoid HuggingFace rate limits under load
-        _embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=EMBEDDING_MODEL
-        )
-        logger.info("Embedding model loaded successfully.")
+        logger.info("Initializing FastEmbed with model: %s", EMBEDDING_MODEL)
+        _embedding_fn = FastEmbedEF(model_name=EMBEDDING_MODEL)
+        logger.info("FastEmbed initialized successfully.")
     return _embedding_fn
 
 

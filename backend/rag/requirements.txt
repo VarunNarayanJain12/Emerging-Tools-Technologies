@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 chromadb
-sentence-transformers
+fastembed
 groq
 python-dotenv
 psycopg2-binary
