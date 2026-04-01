@@ -25,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check if user is already logged in
     const checkUser = async () => {
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Auth initial check timeout')), 15000)
+        setTimeout(() => reject(new Error('Auth initial check timeout')), 30000)
       );
 
       try {
@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Login attempt timed out. Please try refreshing or checking your connection.')), 20000)
+      setTimeout(() => reject(new Error('Login attempt timed out. Please try refreshing or checking your connection.')), 30000)
     );
 
     try {

@@ -12,7 +12,7 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const sessionPromise = supabase.auth.getSession();
   const timeoutPromise = new Promise(resolve => 
-    setTimeout(() => resolve({ data: { session: null } }), 3000)
+    setTimeout(() => resolve({ data: { session: null } }), 12000)
   );
 
   const { data } = await Promise.race([
