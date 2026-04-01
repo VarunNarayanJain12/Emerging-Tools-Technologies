@@ -26,7 +26,7 @@ load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 # Constants
 # ─────────────────────────────────────────────
 
-COLLECTION_NAME: str = "institutional_policies_v5"
+COLLECTION_NAME: str = "institutional_policies_v6"
 EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
 
 # Persistent storage is always relative to this file, not the caller's CWD
@@ -56,6 +56,9 @@ class HFInferenceEF(embedding_functions.EmbeddingFunction):
     def __init__(self, api_key: str, model_name: str):
         self.client = InferenceClient(token=api_key)
         self.model_name = model_name
+
+    def name(self) -> str:
+        return "huggingface"
 
     def __call__(self, input: chromadb.Documents) -> chromadb.Embeddings:
         # BAAI/bge-small-en-v1.5 expects raw strings and returns feature vectors
