@@ -178,7 +178,7 @@ class StudentsListResponse(BaseModel):
     total: int
 
 
-@app.get("/", tags=["Monitoring"])
+@app.get("/", methods=["GET", "HEAD"], tags=["Monitoring"])
 async def root():
     """Root endpoint for Render health checks."""
     return {
